@@ -12,5 +12,4 @@ dataSink/
 spark-warehouse/
 metastore_db/
 dist/*
-datasource/
 spark-logs/

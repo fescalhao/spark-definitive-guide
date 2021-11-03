@@ -29,7 +29,7 @@ object Application extends Serializable {
     unionOperation(spark, df)
 
     logger.info("sortingOperation")
-    sortingOperation(df)
+    sortOperations(df)
   }
 
   def createDataframe(spark: SparkSession, df_file: Boolean = true): DataFrame = {
@@ -138,7 +138,7 @@ object Application extends Serializable {
       .show()
   }
 
-  def sortingOperation(df: DataFrame): Unit = {
+  def sortOperations(df: DataFrame): Unit = {
     df.sort(col("count")).show(5)
     df.orderBy(col("count"), col("DEST_COUNTRY_NAME")).show(5)
 
@@ -146,5 +146,12 @@ object Application extends Serializable {
     df.orderBy(expr("count desc")).show(2)
 
     df.sortWithinPartitions(col("count")).show(2)
+  }
+
+  def collectRows(df: DataFrame): Unit = {
+    df.take(5)
+    df.show()
+    df.collect()
+    df.toLocalIterator() // Iterate over the entire dataset partition-by-partition
   }
 }
