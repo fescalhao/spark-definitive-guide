@@ -4,6 +4,7 @@ import com.github.SparkUtilsPackage.getSparkSession
 import org.apache.log4j.Logger
 import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.apache.spark.sql.functions._
+import org.apache.spark.sql.types.{StringType, StructField, StructType}
 
 object Application extends Serializable {
   @transient lazy val logger: Logger = Logger.getLogger(getClass.getName)
@@ -26,9 +27,18 @@ object Application extends Serializable {
 //
 //    logger.info("dateAndTimestampOperations")
 //    dateAndTimestampOperations(spark)
+//
+//    logger.info("nullOperations")
+//    nullOperations(df)
+//
+//    logger.info("complexTypeOperations")
+//    complexTypeOperations(df)
+//
+//    logger.info("jsonOperations")
+//    jsonOperations(spark, df)
 
-    logger.info("nullOperations")
-    nullOperations(df)
+    logger.info("udfExample")
+    udfExample(spark, df)
   }
 
   def createDataFrame(spark: SparkSession): DataFrame = {
@@ -170,6 +180,69 @@ object Application extends Serializable {
   }
 
   def complexTypeOperations(df: DataFrame): Unit = {
+    df.selectExpr("(Description, InvoiceNo) as complex", "*").show(2, truncate = false)
+    df.selectExpr("struct(Description, InvoiceNo) as complex", "*").show(2, truncate = false)
 
+    df.withColumn("complex", struct(col("Description"), col("InvoiceNo")))
+      .select(
+        col("complex.Description"),
+        col("complex").getField("InvoiceNo").alias("InvoiceNo"),
+        col("complex.*")
+      ).show(2, truncate = false)
+
+    df.withColumn("DescSplit", split(col("Description"), " "))
+      .select(
+        col("DescSplit").getItem(0),
+        size(col("DescSplit")),
+        array_contains(col("DescSplit"), "HEART"),
+        explode(col("DescSplit"))
+      ).show(10, truncate = false)
+
+    df.withColumn("ComplexMap", map(col("InvoiceNo"), col("Description")))
+      .select(
+        col("ComplexMap"),
+        col("ComplexMap").getItem(536365),
+        explode(col("ComplexMap"))
+      ).show(10, truncate = false)
+  }
+
+  def jsonOperations(spark: SparkSession, df: DataFrame): Unit = {
+    val jsonDF = spark.range(1).selectExpr("""
+        |'{"myJSONKey": {"myJSONValue": [1, 2, 3]}}' as jsonString
+        |""".stripMargin)
+
+    val parseSchema = StructType(Seq(
+      StructField("InvoiceNo", StringType, nullable = true),
+      StructField("Description", StringType, nullable = true)
+    ))
+
+    jsonDF.select(
+      get_json_object(col("jsonString"), "$.myJSONKey.myJSONValue[1]").as("column"),
+      json_tuple(col("jsonString"), "myJSONKey").as("value")
+    ).show(2, truncate = false)
+
+    df.withColumn("myStruct", struct(col("InvoiceNo"), col("Description")))
+      .withColumn("toJson", to_json(col("myStruct")))
+      .withColumn("fromJson", from_json(col("toJson"), parseSchema))
+      .select(
+        col("myStruct"),
+        col("toJson"),
+        col("fromJson")
+      ).show(5, truncate = false)
+  }
+
+  def udfExample(spark: SparkSession, df: DataFrame): Unit = {
+
+    def power3(number: Double): Double = number * number * number
+    val power3UDF = udf(power3(_: Double): Double)
+
+    spark.udf.register("power3", power3(_: Double): Double)
+
+    df.select(
+      col("Quantity"),
+      power3UDF(col("Quantity"))
+    ).show(5, truncate = false)
+
+    df.selectExpr("power3(Quantity)").show(5)
   }
 }
