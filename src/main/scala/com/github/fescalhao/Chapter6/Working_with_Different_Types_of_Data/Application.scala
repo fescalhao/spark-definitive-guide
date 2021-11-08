@@ -16,26 +16,26 @@ object Application extends Serializable {
     logger.info("Creating Data Frame")
     val df = createDataFrame(spark)
 
-//    logger.info("booleanOperations")
-//    booleanOperations(df)
-//
-//    logger.info("numericOperations")
-//    numericOperations(df)
-//
-//    logger.info("stringOperations")
-//    stringOperations(df)
-//
-//    logger.info("dateAndTimestampOperations")
-//    dateAndTimestampOperations(spark)
-//
-//    logger.info("nullOperations")
-//    nullOperations(df)
-//
-//    logger.info("complexTypeOperations")
-//    complexTypeOperations(df)
-//
-//    logger.info("jsonOperations")
-//    jsonOperations(spark, df)
+    logger.info("booleanOperations")
+    booleanOperations(df)
+
+    logger.info("numericOperations")
+    numericOperations(df)
+
+    logger.info("stringOperations")
+    stringOperations(df)
+
+    logger.info("dateAndTimestampOperations")
+    dateAndTimestampOperations(spark)
+
+    logger.info("nullOperations")
+    nullOperations(df)
+
+    logger.info("complexTypeOperations")
+    complexTypeOperations(df)
+
+    logger.info("jsonOperations")
+    jsonOperations(spark, df)
 
     logger.info("udfExample")
     udfExample(spark, df)
