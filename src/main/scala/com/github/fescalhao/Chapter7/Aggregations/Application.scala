@@ -25,9 +25,12 @@ object Application extends Serializable {
 //
 //    logger.info("groupingOperations")
 //    groupingOperations(df)
+//
+//    logger.info("windowOperations")
+//    windowOperations(df)
 
-    logger.info("windowOperations")
-    windowOperations(df)
+    logger.info("groupingSetsOperations")
+    groupingSetsOperations(df)
   }
 
   def createDataFrame(spark: SparkSession): DataFrame = {
@@ -98,5 +101,10 @@ object Application extends Serializable {
         purchaseDenseRank.alias("QuantityDenseRank"),
         maxPurchaseQty.alias("MaxPurchaseQuantity")
       ).show()
+  }
+
+  def groupingSetsOperations(df: DataFrame): Unit = {
+    df.drop()
+      .
   }
 }
