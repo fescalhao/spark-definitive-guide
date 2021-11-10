@@ -1,6 +1,7 @@
 package com.github.fescalhao.Chapter7.Aggregations
 
 import com.github.SparkUtilsPackage.getSparkSession
+import com.github.fescalhao.Chapter7.Aggregations.`class`.BoolAnd
 import org.apache.log4j.Logger
 import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.{DataFrame, SparkSession}
@@ -28,9 +29,12 @@ object Application extends Serializable {
 //
 //    logger.info("windowOperations")
 //    windowOperations(df)
+//
+//    logger.info("groupingSetsOperations")
+//    groupingSetsOperations(df)
 
-    logger.info("groupingSetsOperations")
-    groupingSetsOperations(df)
+    logger.info("udafExample")
+    udafExample(spark)
   }
 
   def createDataFrame(spark: SparkSession): DataFrame = {
@@ -104,7 +108,55 @@ object Application extends Serializable {
   }
 
   def groupingSetsOperations(df: DataFrame): Unit = {
-    df.drop()
-      .
+    val dfNoNull = df.drop()
+      .withColumn("Date", to_date(col("InvoiceDate"), "M/d/yyyy H:mm"))
+
+    dfNoNull.rollup(col("Date"), col("Country"))
+      .agg(sum(col("Quantity")).alias("SumQuantity"))
+      .select(
+        col("Date"),
+        col("Country"),
+        col("SumQuantity")
+      )
+      .orderBy(col("Date"))
+      .show()
+
+    dfNoNull.cube(col("CustomerId"), col("StockCode"))
+      .agg(
+        grouping_id().alias("GroupingId"),
+        sum(col("Quantity")).alias("SumQuantity")
+      )
+      .select(
+        col("CustomerId"),
+        col("StockCode"),
+        col("GroupingId"),
+        col("SumQuantity")
+      )
+      .orderBy(col("GroupingId").desc)
+      .show()
+
+    dfNoNull.groupBy(col("Date"))
+      .pivot(col("Country"))
+      .agg(sum(col("Quantity")).alias("SumQuantity"))
+      .filter(col("Date") > "2011-12-05")
+      .select(col("Date"), col("USA"))
+      .show()
+  }
+
+  def udafExample(spark: SparkSession): Unit = {
+    val boolAnd = udaf(new BoolAnd)
+    spark.udf.register("booland", boolAnd)
+
+    val myDF = spark.range(1)
+      .selectExpr("explode(array(TRUE, TRUE, TRUE)) as t")
+      .selectExpr("explode(array(TRUE, FALSE, TRUE)) as f", "t")
+
+    myDF.createTempView("myDF")
+
+    myDF.select(boolAnd(col("t")), boolAnd(col("f")))
+      .show()
+
+    spark.sql("SELECT booland(t), booland(f) FROM myDF")
+      .show()
   }
 }
