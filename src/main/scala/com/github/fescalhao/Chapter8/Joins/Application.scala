@@ -3,8 +3,8 @@ package com.github.fescalhao.Chapter8.Joins
 import com.github.SparkUtilsPackage
 import org.apache.log4j.Logger
 import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.apache.spark.sql.functions._
 
-import scala.math.Integral.Implicits.infixIntegralOps
 
 object Application extends Serializable {
   @transient lazy val logger: Logger = Logger.getLogger(getClass.getName)
@@ -16,8 +16,8 @@ object Application extends Serializable {
     logger.info("Creating Data Frames")
     val dfMap = createDataFrames(spark)
 
-    logger.info("innerJoin")
-    innerJoin(dfMap)
+    logger.info("joinOperations")
+    joinOperations(dfMap)
   }
 
   def createDataFrames(spark: SparkSession): Map[String, DataFrame] = {
@@ -48,16 +48,35 @@ object Application extends Serializable {
     )
   }
 
-  def innerJoin(dfMap: Map[String, DataFrame]): Unit = {
+  def joinOperations(dfMap: Map[String, DataFrame]): Unit = {
     val personDF: DataFrame = dfMap("personDF")
     val graduateProgramDF: DataFrame = dfMap("graduateProgramDF")
+    val sparkStatusDF: DataFrame = dfMap("sparkStatusDF")
 
-    val joinExpression = personDF.col("graduate_program") === graduateProgramDF.col("id")
+    var joinExpression = personDF.col("graduate_program") === graduateProgramDF.col("id")
     var joinType = "inner"
 
-    personDF.join(graduateProgramDF, joinExpression, joinType).show()
+    personDF.join(broadcast(graduateProgramDF), joinExpression, joinType).show()
 
     joinType = "outer"
     personDF.join(graduateProgramDF, joinExpression, joinType).show()
+
+    joinType = "left_outer"
+    graduateProgramDF.join(personDF, joinExpression, joinType).show()
+
+    joinType = "right_outer"
+    personDF.join(graduateProgramDF, joinExpression, joinType).show()
+
+    joinType = "left_semi"
+    graduateProgramDF.join(personDF, joinExpression, joinType).show()
+
+    joinType = "left_anti"
+    graduateProgramDF.join(personDF, joinExpression, joinType).show()
+
+    // cross-join
+    graduateProgramDF.crossJoin(personDF).show()
+
+    joinExpression = array_contains(personDF.col("spark_status"), sparkStatusDF.col("id"))
+    personDF.join(sparkStatusDF, joinExpression).show()
   }
 }
